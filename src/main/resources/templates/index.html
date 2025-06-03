@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text Reports</title>
+</head>
+<body>
+    <h1>Uploaded Reports</h1>
+    <ul>
+        {#each reports.entrySet()}
+        <li>
+            <h3>{it.key}</h3>
+            <pre>{it.value}</pre>
+        </li>
+        {/each}
+    </ul>
+    <h2>Upload New Report</h2>
+    <form id="uploadForm">
+        <input type="text" id="name" placeholder="Report Name" required />
+        <br/>
+        <textarea id="content" rows="10" cols="50" placeholder="Paste report text here"></textarea>
+        <br/>
+        <button type="button" onclick="upload()">Upload</button>
+    </form>
+    <script>
+        function upload() {
+            const name = document.getElementById('name').value;
+            const content = document.getElementById('content').value;
+            fetch('/reports/upload?name=' + encodeURIComponent(name), {
+                method: 'POST',
+                headers: {'Content-Type': 'text/plain'},
+                body: content
+            }).then(resp => resp.text())
+              .then(alert)
+              .then(() => window.location.reload());
+        }
+    </script>
+</body>
+</html>
