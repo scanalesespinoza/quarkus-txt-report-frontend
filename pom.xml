@@ -13,7 +13,7 @@
 
     <groupId>com.scanales.quarkus</groupId>
     <artifactId>txt-report-frontend</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -24,6 +24,8 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Activar arranque “lazy” para iniciar más rápido en contenedor -->
+        <quarkus.arc.lazy-init>true</quarkus.arc.lazy-init>
     </properties>
 
     <dependencies>
@@ -66,6 +68,24 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-container-image-jib</artifactId>
+        </dependency>
+
+        <!-- 1) SmallRye Health para liveness/readiness personalizados -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+        </dependency>
+
+        <!-- 2) Micrometer (export Prometheus) junto con el binder de métricas básicas -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-micrometer</artifactId>
+        </dependency>
+
+        <!-- 3) MicroProfile Metrics API (para @Metric, Counter, etc.) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-metrics</artifactId>
         </dependency>
 
     </dependencies>
