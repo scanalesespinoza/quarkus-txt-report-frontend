@@ -4,14 +4,14 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.jboss.logging.Logger;
+
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
-
-import org.jboss.logging.Logger;
 
 @Path("/reports")
 @Produces(MediaType.TEXT_HTML)
@@ -38,15 +38,13 @@ public class ReportResource {
                            .build();
         }
 
-        String content;
+        String rawCsv;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(bodyStream, StandardCharsets.UTF_8))) {
-            content = reader.lines().collect(Collectors.joining("\n"));
+            rawCsv = reader.lines().collect(Collectors.joining("\n"));
         } catch (IOException e) {
-            StackTraceElement origen = e.getStackTrace().length > 0 ? e.getStackTrace()[0] : null;
-            LOG.info("Failed scanning scripts: " + e.toString() +
-                     (origen != null ? "\n\tat " + origen.toString() : ""));
+            LOG.info("Error reading report: " + e.toString());
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Stack completo al escanear scripts:", e);
+                LOG.debug("Stack trace:", e);
             }
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                            .entity("Error processing report upload. Please try again later.")
@@ -54,15 +52,13 @@ public class ReportResource {
         }
 
         try {
-            cache.addReport(name, content);
+            cache.addReport(name, rawCsv);
             LOG.info("Report '" + name + "' uploaded successfully.");
             return Response.ok("Report '" + name + "' uploaded successfully.").build();
         } catch (Exception e) {
-            StackTraceElement origen = e.getStackTrace().length > 0 ? e.getStackTrace()[0] : null;
-            LOG.info("Failed storing report: " + e.toString() +
-                     (origen != null ? "\n\tat " + origen.toString() : ""));
+            LOG.info("Failed storing report: " + e.toString());
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Unexpected error while adding report to cache: " + name, e);
+                LOG.debug("Stack trace:", e);
             }
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                            .entity("Error storing report. Please try again later.")

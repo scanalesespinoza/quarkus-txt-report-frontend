@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Detalle del Reporte: {reportName}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+    th { background: #f0f0f0; }
+    .summary { font-weight: bold; color: #a00; }
+    a { display: inline-block; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <a href="/">← Volver al Resumen</a>
+  <h1>Detalle del Reporte: {reportName}</h1>
+  <p><strong>Subido en:</strong> {uploadTime}</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Namespace</th>
+        <th>Deployment</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#each entries}
+        <tr>
+          <td>{it.namespace}</td>
+          <td>{it.deployment}</td>
+          <td>{it.timestamp}</td>
+        </tr>
+      {/each}
+      <tr class="summary">
+        <td colspan="2">RESUMEN % Indisponibilidad</td>
+        <td>{summary}%</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>

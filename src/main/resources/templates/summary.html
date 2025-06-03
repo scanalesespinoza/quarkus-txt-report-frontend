@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Resumen de Indisponibilidad</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+        }
+
+        #chartContainer {
+            width: 80%;
+            margin: auto;
+        }
+
+        #chartContainer canvas {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Gráfico de % Indisponibilidad vs Timestamp (CSV)</h1>
+    <p>Haga clic en un punto para ver el detalle del reporte.</p>
+
+    <div id="chartContainer">
+        <canvas id="summaryChart"></canvas>
+    </div>
+
+    <script>
+        fetch('/summary')
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                // Ahora data[i].reportTimestamp viene del CSV
+                data.sort(function (a, b) {
+                    return new Date(a.reportTimestamp) - new Date(b.reportTimestamp);
+                });
+                // Etiquetas = reportTimestamp, no uploadTime
+                var labels = data.map(function (d) { return d.reportTimestamp; });
+                var percentages = data.map(function (d) { return d.percentage; });
+                var reportNames = data.map(function (d) { return d.reportName; });
+
+                var ctx = document.getElementById('summaryChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '% Indisponibilidad',
+                            data: percentages,
+                            fill: false,
+                            borderColor: 'red',
+                            backgroundColor: 'red',
+                            borderWidth: 2,
+                            pointRadius: 5
+                        }]
+
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        onClick: function (evt, elements) {
+                            if (elements.length) {
+                                var idx = elements[0].index;
+                                var name = reportNames[idx];
+                                var base = '/report-detail?name=';
+                                var redirectUrl = base.concat(encodeURIComponent(name));
+                                window.location.href = redirectUrl;
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                adapters: {
+                                    date: {}
+                                },
+                                time: {
+                                    unit: 'hour',
+                                    displayFormats: { hour: 'HH:mm' },
+                                    tooltipFormat: 'yyyy-MM-dd HH:mm:ss'
+                                },
+                                title: { display: true, text: 'Timestamp del CSV' }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: { display: true, text: '% Indisponibilidad' }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(function (err) {
+                console.error('Error cargando /summary:', err);
+                document.getElementById('chartContainer').innerHTML =
+                    '<p style="color:red;">No se pudo cargar el gráfico.</p>';
+            });
+    </script>
+</body>
+
+</html>
