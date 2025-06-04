@@ -1,98 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Parent BOM de Quarkus 3.23.0 -->
-    <parent>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-bom</artifactId>
-        <version>3.23.0</version>
-        <relativePath /> <!-- buscar en repositorios remotos -->
-    </parent>
-
     <groupId>com.scanales.quarkus</groupId>
     <artifactId>txt-report-frontend</artifactId>
     <version>1.0.0</version>
+    <packaging>jar</packaging>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Asegurar que el plugin de Quarkus use la misma versión que el BOM -->
-        <quarkus-plugin.version>3.23.0</quarkus-plugin.version>
-        <!-- Java 17 LTS (soportado por Quarkus 3.x) -->
+        <!-- Java 17 LTS -->
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!-- Activar arranque “lazy” para iniciar más rápido en contenedor -->
+
+        <!-- Versión del BOM de Quarkus (sin “.Final”) -->
+        <quarkus.platform.version>3.23.0</quarkus.platform.version>
+        <quarkus-plugin.version>${quarkus.platform.version}</quarkus-plugin.version>
+
+        <!-- Lazy initialization -->
         <quarkus.arc.lazy-init>true</quarkus.arc.lazy-init>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Importar el BOM de Quarkus 3.23.0 -->
+            <dependency>
+                <groupId>io.quarkus.platform</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
-        <!-- Arrastra runtime HTTP + common -->
+        <!-- 1) HTTP + Vert.x (Quarkus 3 usa quarkus-vertx-http) -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-vertx-http</artifactId>
         </dependency>
 
-        <!-- CDI / Beans -->
+        <!-- 2) CDI / Arc -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-arc</artifactId>
         </dependency>
 
-        <!-- REST (reemplaza a resteasy-reactive) -->
+        <!-- 3) REST (quarkus-rest en lugar de resteasy-reactive) -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest</artifactId>
         </dependency>
-        <!-- Si necesitas JSON: -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-jsonb</artifactId>
         </dependency>
 
-        <!-- Qute (templates) -->
+        <!-- 4) Qute (templates) -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-qute</artifactId>
         </dependency>
 
-        <!-- Scheduler (StartupEvent / @Observes) -->
+        <!-- 5) Scheduler (para StartupEvent / @Observes) -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-scheduler</artifactId>
         </dependency>
 
-        <!-- Container image con Jib (compatible con Podman) -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-container-image-jib</artifactId>
-        </dependency>
-
-        <!-- 1) SmallRye Health para liveness/readiness personalizados -->
+        <!-- 6) Health (SmallRye Health para liveness/readiness) -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
 
-        <!-- 2) Micrometer (export Prometheus) junto con el binder de métricas básicas -->
+        <!-- 7) Jib (para construir imagen) -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-micrometer</artifactId>
+            <artifactId>quarkus-container-image-jib</artifactId>
         </dependency>
-
-        <!-- 3) MicroProfile Metrics API (para @Metric, Counter, etc.) -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-smallrye-metrics</artifactId>
-        </dependency>
-
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Forzar compilación con Java 17 -->
+            <!-- 1) Maven Compiler Plugin para Java 17 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -103,7 +98,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Quarkus Maven Plugin -->
+            <!-- 2) Quarkus Maven Plugin -->
             <plugin>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>

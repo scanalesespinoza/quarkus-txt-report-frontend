@@ -1,13 +1,11 @@
 package com.scanales.quarkus;
 
+import com.scanales.quarkus.ReportCache;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-import org.eclipse.microprofile.metrics.Counter;
-import org.eclipse.microprofile.metrics.annotation.RegistryType;
-import org.eclipse.microprofile.metrics.annotation.Metric;
 import org.jboss.logging.Logger;
 
 import java.lang.management.ManagementFactory;
@@ -26,10 +24,6 @@ public class ServiceStatusResource {
     @Inject
     ReportCache cache;
 
-    // Un contador expuesto en métricas Micrometer (por ejemplo)
-    @Metric(name = "reports.cached", description = "Número de reportes en cache")
-    Counter reportsCached;
-
     @GET
     public Map<String, Object> status() {
         LOG.info("GET /service-status invoked");
@@ -39,7 +33,6 @@ public class ServiceStatusResource {
         // Cache
         int cacheSize = cache.listReports().size();
         map.put("reportsInCache", cacheSize);
-        reportsCached.inc(cacheSize - reportsCached.getCount());
 
         // JVM Memory
         MemoryMXBean memBean = ManagementFactory.getMemoryMXBean();
@@ -47,9 +40,8 @@ public class ServiceStatusResource {
         map.put("heapMemoryMax", memBean.getHeapMemoryUsage().getMax());
         map.put("nonHeapMemoryUsed", memBean.getNonHeapMemoryUsage().getUsed());
 
-        // Sistema (CPU load)
+        // System Load Average
         OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-        // Muchos impl. no exponen getProcessCpuLoad; usamos genérico
         double load = os.getSystemLoadAverage();
         map.put("systemLoadAverage", load);
 
