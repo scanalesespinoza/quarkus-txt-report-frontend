@@ -6,22 +6,11 @@
     <title>Resumen de Indisponibilidad</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 2rem;
-        }
-
-        #chartContainer {
-            width: 80%;
-            margin: auto;
-        }
-
-        #chartContainer canvas {
-            cursor: pointer;
-        }
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        #chartContainer { width: 80%; margin: auto; height: 400px; }
+        #chartContainer canvas { cursor: pointer; }
     </style>
 </head>
 
@@ -35,18 +24,16 @@
 
     <script>
         fetch('/summary')
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                // Ahora data[i].reportTimestamp viene del CSV
-                data.sort(function (a, b) {
-                    return new Date(a.reportTimestamp) - new Date(b.reportTimestamp);
-                });
-                // Etiquetas = reportTimestamp, no uploadTime
-                var labels = data.map(function (d) { return d.reportTimestamp; });
-                var percentages = data.map(function (d) { return d.percentage; });
-                var reportNames = data.map(function (d) { return d.reportName; });
+            .then(res => res.json())
+            .then(data => {
+                // Ordenar por timestamp del CSV
+                data.sort((a, b) => new Date(a.reportTimestamp) - new Date(b.reportTimestamp));
 
-                var ctx = document.getElementById('summaryChart').getContext('2d');
+                const labels = data.map(d => d.reportTimestamp);
+                const percentages = data.map(d => parseFloat(d.percentage));
+                const reportNames = data.map(d => d.reportName);
+
+                const ctx = document.getElementById('summaryChart').getContext('2d');
                 new Chart(ctx, {
                     type: 'line',
                     data: {
@@ -56,35 +43,33 @@
                             data: percentages,
                             fill: false,
                             borderColor: 'red',
-                            backgroundColor: 'red',
+                            backgroundColor: 'rgba(255,0,0,0.2)',
                             borderWidth: 2,
-                            pointRadius: 5
+                            pointRadius: 5,
+                            tension: 0.3
                         }]
-
                     },
                     options: {
+                        responsive: true,
                         maintainAspectRatio: false,
-                        onClick: function (evt, elements) {
+                        onClick: (evt, elements) => {
                             if (elements.length) {
-                                var idx = elements[0].index;
-                                var name = reportNames[idx];
-                                var base = '/report-detail?name=';
-                                var redirectUrl = base.concat(encodeURIComponent(name));
-                                window.location.href = redirectUrl;
+                                const idx = elements[0].index;
+                                const name = reportNames[idx];
+                                const url = '/detail-page?name=' + encodeURIComponent(name);
+                                window.location.href = url;
                             }
                         },
                         scales: {
                             x: {
                                 type: 'time',
-                                adapters: {
-                                    date: {}
-                                },
                                 time: {
+                                    parser: "yyyy-MM-dd'T'HH:mm:ssXXX",
+                                    tooltipFormat: 'yyyy-MM-dd HH:mm:ss',
                                     unit: 'hour',
-                                    displayFormats: { hour: 'HH:mm' },
-                                    tooltipFormat: 'yyyy-MM-dd HH:mm:ss'
+                                    displayFormats: { hour: 'HH:mm' }
                                 },
-                                title: { display: true, text: 'Timestamp del CSV' }
+                                title: { display: true, text: 'Timestamp (CSV)' }
                             },
                             y: {
                                 beginAtZero: true,
@@ -95,7 +80,7 @@
                     }
                 });
             })
-            .catch(function (err) {
+            .catch(err => {
                 console.error('Error cargando /summary:', err);
                 document.getElementById('chartContainer').innerHTML =
                     '<p style="color:red;">No se pudo cargar el gráfico.</p>';
