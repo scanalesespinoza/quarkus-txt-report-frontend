@@ -38,6 +38,8 @@ setup() {
   declare -A defaults
   if [ -f "$ENV_FILE" ]; then
     while IFS='=' read -r key val; do
+      # Ignorar líneas que empiecen con #
+      [[ "$key" =~ ^# ]] && continue
       defaults["$key"]="$val"
     done < "$ENV_FILE"
   fi
@@ -45,17 +47,20 @@ setup() {
   echo "# Archivo env generado por env_manager.sh" > "$ENV_FILE"
 
   vars=(
-    "QUARKUS_HTTP_PORT|Puerto HTTP|${defaults[QUARKUS_HTTP_PORT]:-8080}"
-    "QUARKUS_NATIVE_CONTAINER_BUILD|Habilitar native container build (true/false)|${defaults[QUARKUS_NATIVE_CONTAINER_BUILD]:-true}"
+    "HTTP_HOST|Bind HTTP Host (p. ej. 0.0.0.0)|${defaults[HTTP_HOST]:-0.0.0.0}"
+    "HTTP_PORT|Puerto HTTP|${defaults[HTTP_PORT]:-8080}"
+    "MAX_REPORTS|Máximo de reportes en cache|${defaults[MAX_REPORTS]:-16000}"
+    "QUARKUS_LOG_LEVEL|Nivel de log (INFO/DEBUG/ERROR)|${defaults[QUARKUS_LOG_LEVEL]:-INFO}"
+    "QUARKUS_CONTAINER_IMAGE_BUILDER|Builder de contenedor (jib/docker/podman)|${defaults[QUARKUS_CONTAINER_IMAGE_BUILDER]:-podman}"
     "QUARKUS_CONTAINER_IMAGE_BUILD|Habilitar construcción de imagen (true/false)|${defaults[QUARKUS_CONTAINER_IMAGE_BUILD]:-true}"
     "QUARKUS_CONTAINER_IMAGE_PUSH|Habilitar push de imagen (true/false)|${defaults[QUARKUS_CONTAINER_IMAGE_PUSH]:-true}"
     "QUARKUS_CONTAINER_IMAGE_REGISTRY|Registry de contenedor|${defaults[QUARKUS_CONTAINER_IMAGE_REGISTRY]:-quay.io}"
     "QUARKUS_CONTAINER_IMAGE_GROUP|Grupo en registry|${defaults[QUARKUS_CONTAINER_IMAGE_GROUP]:-sergio_canales_e}"
     "QUARKUS_CONTAINER_IMAGE_NAME|Nombre de la imagen|${defaults[QUARKUS_CONTAINER_IMAGE_NAME]:-txt-report-frontend}"
-    "QUARKUS_CONTAINER_IMAGE_TAG|Tag de la imagen|${defaults[QUARKUS_CONTAINER_IMAGE_TAG]:-latest}"
-    "QUARKUS_CONTAINER_IMAGE_BUILDER|Builder de contenedor|${defaults[QUARKUS_CONTAINER_IMAGE_BUILDER]:-podman}"
+    "QUARKUS_CONTAINER_IMAGE_TAG|Tag de la imagen|${defaults[QUARKUS_CONTAINER_IMAGE_TAG]:-1.0.0}"
+    "QUARKUS_JIB_JVM_ADDITIONAL_ARGUMENTS|Args JVM adicionales para Jib (p. ej. debug)|${defaults[QUARKUS_JIB_JVM_ADDITIONAL_ARGUMENTS]:-}"
     "PLATFORM_QUARKUS_NATIVE_BUILDER_IMAGE|Builder image Mandrel|${defaults[PLATFORM_QUARKUS_NATIVE_BUILDER_IMAGE]:-quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-21}"
-    "APP_MAX_REPORTS|Máximo de reportes en cache|${defaults[APP_MAX_REPORTS]:-16000}"
+    "QUARKUS_NATIVE_CONTAINER_BUILD|Habilitar native container build (true/false)|${defaults[QUARKUS_NATIVE_CONTAINER_BUILD]:-true}"
     "QUARKUS_HTTP_ENCODING_ENABLED|Forzar HTTP UTF-8 (true/false)|${defaults[QUARKUS_HTTP_ENCODING_ENABLED]:-true}"
     "QUARKUS_HTTP_ENCODING_CHARSET|Charset HTTP|${defaults[QUARKUS_HTTP_ENCODING_CHARSET]:-UTF-8}"
   )
@@ -78,7 +83,7 @@ set_vars() {
   fi
 
   while IFS='=' read -r key val; do
-    [[ "$key" =~ ^#.*$ ]] && continue
+    [[ "$key" =~ ^# ]] && continue
     [[ -z "$key" ]] && continue
     echo "export $key=\"${val}\""
   done < "$ENV_FILE"
