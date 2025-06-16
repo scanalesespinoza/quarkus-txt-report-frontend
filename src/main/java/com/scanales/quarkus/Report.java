@@ -4,7 +4,9 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 
+@RegisterForReflection
 public class Report {
     private final String name;
     private final String rawCsv;
@@ -30,7 +32,7 @@ public class Report {
         }
         for (int i = 1; i < lines.length; i++) {
             String line = lines[i].trim();
-            if (line.startsWith("RESUMEN")) {
+            if (line.startsWith("percent_not_ready")) {
                 break;
             }
             String[] cols = line.split(",", -1);
@@ -43,14 +45,24 @@ public class Report {
 
     private double parseSummary(String csv) {
         String[] lines = csv.split("\\r?\\n");
-        for (String line : lines) {
-            if (line.startsWith("RESUMEN")) {
-                String[] parts = line.split(",");
-                String last = parts[parts.length - 1].replace("%", "").trim();
+        // Encuentra la última línea no vacía
+        String lastLine = null;
+        for (int i = lines.length - 1; i >= 0; i--) {
+            String line = lines[i].trim();
+            if (!line.isEmpty()) {
+                lastLine = line;
+                break;
+            }
+        }
+        if (lastLine != null && lastLine.startsWith("percent_not_ready")) {
+            // Formato: percent_not_ready,,<valor>
+            String[] parts = lastLine.split(",");
+            if (parts.length >= 3) {
+                String valuePart = parts[parts.length - 1].replace("%", "").trim();
                 try {
-                    return Double.parseDouble(last);
-                } catch (Exception e) {
-                    return 0.0;
+                    return Double.parseDouble(valuePart);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid percentage format in summary: " + valuePart, e);
                 }
             }
         }

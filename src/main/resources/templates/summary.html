@@ -1,91 +1,93 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="UTF-8" />
-    <title>Resumen de Indisponibilidad</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 2rem; }
-        #chartContainer { width: 80%; margin: auto; height: 400px; }
-        #chartContainer canvas { cursor: pointer; }
-    </style>
+  <meta charset="UTF-8"/>
+  <title>Resumen de Indisponibilidad</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    #chartContainer { width: 80%; margin: auto; height: 400px; }
+    #chartContainer canvas { cursor: pointer; }
+  </style>
 </head>
-
 <body>
-    <h1>Gráfico de % Indisponibilidad vs Timestamp (CSV)</h1>
-    <p>Haga clic en un punto para ver el detalle del reporte.</p>
+  <h1>Gráfico de % Indisponibilidad vs Timestamp</h1>
+  <p>Haga clic en un punto para ver el detalle del reporte.</p>
 
-    <div id="chartContainer">
-        <canvas id="summaryChart"></canvas>
-    </div>
+  <div id="chartContainer">
+    <canvas id="summaryChart"></canvas>
+  </div>
 
-    <script>
-        fetch('/summary')
-            .then(res => res.json())
-            .then(data => {
-                // Ordenar por timestamp del CSV
-                data.sort((a, b) => new Date(a.reportTimestamp) - new Date(b.reportTimestamp));
+  <script>
+    // Inyectar data desde servidor con Qute
+    const summaryData = [
+      {#each summaries}
+        {
+          reportName: "{it.name}",
+          percentage: {it.summaryPercentage},
+          uploadTime: "{it.uploadTime}"
+        }{#if !it_isLast},{/if}
+      {/each}
+    ];
+    console.log("summaryData:", summaryData);
 
-                const labels = data.map(d => d.reportTimestamp);
-                const percentages = data.map(d => parseFloat(d.percentage));
-                const reportNames = data.map(d => d.reportName);
+    if (summaryData.length === 0) {
+      document.getElementById('chartContainer').innerHTML =
+        '<div style="text-align:center;color:#666;padding:2rem;">No hay reportes disponibles.</div>';
+    } else {
+      // Ordenar por uploadTime
+      summaryData.sort((a, b) => new Date(a.uploadTime) - new Date(b.uploadTime));
 
-                const ctx = document.getElementById('summaryChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: '% Indisponibilidad',
-                            data: percentages,
-                            fill: false,
-                            borderColor: 'red',
-                            backgroundColor: 'rgba(255,0,0,0.2)',
-                            borderWidth: 2,
-                            pointRadius: 5,
-                            tension: 0.3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        onClick: (evt, elements) => {
-                            if (elements.length) {
-                                const idx = elements[0].index;
-                                const name = reportNames[idx];
-                                const url = '/detail-page?name=' + encodeURIComponent(name);
-                                window.location.href = url;
-                            }
-                        },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: {
-                                    parser: "yyyy-MM-dd'T'HH:mm:ssXXX",
-                                    tooltipFormat: 'yyyy-MM-dd HH:mm:ss',
-                                    unit: 'hour',
-                                    displayFormats: { hour: 'HH:mm' }
-                                },
-                                title: { display: true, text: 'Timestamp (CSV)' }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                title: { display: true, text: '% Indisponibilidad' }
-                            }
-                        }
-                    }
-                });
-            })
-            .catch(err => {
-                console.error('Error cargando /summary:', err);
-                document.getElementById('chartContainer').innerHTML =
-                    '<p style="color:red;">No se pudo cargar el gráfico.</p>';
-            });
-    </script>
+      const labels      = summaryData.map(d => d.uploadTime);
+      const percentages = summaryData.map(d => d.percentage);
+      const reportNames = summaryData.map(d => d.reportName);
+
+      const ctx = document.getElementById('summaryChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '% Indisponibilidad',
+            data: percentages,
+            fill: false,
+            borderColor: 'red',
+            backgroundColor: 'rgba(255,0,0,0.2)',
+            borderWidth: 2,
+            pointRadius: 5,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements.length) {
+              const idx = elements[0].index;
+              const name = reportNames[idx];
+              window.location.href = '/report-detail?name=' + encodeURIComponent(name);
+            }
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'hour',
+                displayFormats: { hour: 'HH:mm' }
+              },
+              title: { display: true, text: 'Timestamp (uploadTime)' }
+            },
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: '% Indisponibilidad' }
+            }
+          }
+        }
+      });
+    }
+  </script>
 </body>
-
 </html>

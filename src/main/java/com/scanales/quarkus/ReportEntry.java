@@ -1,5 +1,8 @@
 package com.scanales.quarkus;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
 public class ReportEntry {
     private final String namespace;
     private final String deployment;
