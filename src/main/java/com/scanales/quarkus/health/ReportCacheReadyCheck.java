@@ -3,11 +3,11 @@ package com.scanales.quarkus.health;
 import com.scanales.quarkus.ReportCache;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
 import org.eclipse.microprofile.health.HealthCheckResponseBuilder;
-import org.eclipse.microprofile.health.Liveness;   // O @Readiness si prefieres readiness
-import java.util.Optional;
+import org.eclipse.microprofile.health.Liveness;
 
 @ApplicationScoped
 @Liveness
@@ -16,24 +16,37 @@ public class ReportCacheReadyCheck implements HealthCheck {
     @Inject
     ReportCache cache;
 
+    /**
+     * Umbral mínimo de memoria libre en bytes (por defecto 50 MiB).
+     * Se puede sobreescribir con la propiedad 'app.min-free-memory'.
+     */
+    @ConfigProperty(name = "app.min-free-memory", defaultValue = "52428800")
+    long minFreeMemory;
+
     @Override
     public HealthCheckResponse call() {
-        // Leemos app.max-reports configurado en application.properties
-        int maxReports = Integer.parseInt(
-            Optional.ofNullable(System.getProperty("app.max-reports")).orElse("16000")
-        );
-        int currentSize = cache.listReports().size();
-        boolean up = currentSize < maxReports;
+        Runtime rt = Runtime.getRuntime();
+        long maxMemory    = rt.maxMemory();
+        long totalMemory  = rt.totalMemory();
+        long freeInAlloc  = rt.freeMemory();
+        long usedMemory   = totalMemory - freeInAlloc;
+        long freeMemory   = maxMemory - usedMemory;
 
-        // Construimos el HealthCheckResponse paso a paso
-        HealthCheckResponseBuilder builder = HealthCheckResponse.builder()
-            .name("report-cache-free-space");
+        boolean up = freeMemory >= minFreeMemory;
+
+        HealthCheckResponseBuilder builder = HealthCheckResponse
+            .named("report-cache-memory")
+            .withData("maxMemory",    maxMemory)
+            .withData("allocated",    totalMemory)
+            .withData("usedMemory",   usedMemory)
+            .withData("freeMemory",   freeMemory)
+            .withData("minFreeMemory",minFreeMemory);
 
         if (up) {
             builder.up();
         } else {
             builder.down();
         }
-        return builder.withData("currentSize", currentSize).build();
+        return builder.build();
     }
 }
