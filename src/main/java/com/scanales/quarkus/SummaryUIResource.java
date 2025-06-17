@@ -24,6 +24,7 @@ public class SummaryUIResource {
     @GET
     public String view() {
         LOG.info("Rendering summary page with embedded data");
+        LOG.infof("Rendering summary page, %d reports en cache", cache.listReports().size());
         // Inject the list of summary DTOs into the template
         return summary
                 .data("summaries", cache.listReports().values()).render();
