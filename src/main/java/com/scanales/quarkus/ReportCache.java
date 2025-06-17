@@ -4,8 +4,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
-
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -13,31 +13,41 @@ import java.util.Map;
 public class ReportCache {
     private static final Logger LOG = Logger.getLogger(ReportCache.class);
 
-    private Map<String, Report> cache;
+    // Mapa de inserción-orden para poder eliminar el más antiguo fácilmente
+    private LinkedHashMap<String, Report> cache;
 
-    @ConfigProperty(name = "app.max-reports")
-    int maxReports;
+    /**
+     * Umbral de uso de heap (%) a partir del cual expulsar el elemento más antiguo.
+     * p.ej. 90.0 para expulsar cuando el 90% del heap esté en uso.
+     */
+    @ConfigProperty(name = "app.eviction.threshold", defaultValue = "90.0")
+    double evictionThreshold;
 
     @PostConstruct
     void init() {
-        LOG.infof("Inicializando ReportCache con maxReports=%d", maxReports);
-        cache = new LinkedHashMap<>(maxReports + 1, 0.75f, false) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, Report> eldest) {
-                boolean evict = size() > maxReports;
-                if (evict) {
-                    LOG.warnf("Evicting oldest report '%s'; cacheSize before eviction=%d", 
-                        eldest.getKey(), size());
-                }
-                return evict;
-            }
-        };
+        // inicializa mapa sin límite de tamaño
+        cache = new LinkedHashMap<>();
     }
 
     public synchronized void addReport(String name, String rawCsv) {
+        // Medimos uso de heap
+        Runtime rt = Runtime.getRuntime();
+        long maxHeap = rt.maxMemory();
+        long usedHeap = rt.totalMemory() - rt.freeMemory();
+        double usedPct = usedHeap * 100.0 / maxHeap;
+
+        if (usedPct >= evictionThreshold && !cache.isEmpty()) {
+            // expulsamos el más antiguo (primera clave en el LinkedHashMap)
+            Iterator<String> it = cache.keySet().iterator();
+            String eldest = it.next();
+            it.remove();
+            // log (si quieres)
+            System.out.printf("Evicted report '%s' (heap uso=%.1f%%)%n", eldest, usedPct);
+        }
+
+        // Insertamos/reemplazamos el reporte
         Report r = new Report(name, rawCsv, Instant.now());
         cache.put(name, r);
-        LOG.debugf("addReport('%s') → cacheSize=%d", name, cache.size());
         logMemory();
     }
 
@@ -47,10 +57,10 @@ public class ReportCache {
 
     /** Muestra en DEBUG el heap usado y libre */
     private void logMemory() {
-        long max   = Runtime.getRuntime().maxMemory();
+        long max = Runtime.getRuntime().maxMemory();
         long total = Runtime.getRuntime().totalMemory();
-        long free  = Runtime.getRuntime().freeMemory();
+        long free = Runtime.getRuntime().freeMemory();
         LOG.debugf("Memoria JVM (bytes): max=%d, total=%d, free=%d, used=%d",
-            max, total, free, (total - free));
+                max, total, free, (total - free));
     }
 }
