@@ -1,0 +1,33 @@
+# Health Behavior Simulator Utilities
+
+This directory contains utilities to create and delete multiple `health-behavior-simulator` deployments
+in your OpenShift/Kubernetes cluster for testing purposes.
+
+## Files
+
+- `simulator-deployment.yaml.tpl` - Template file; contains placeholders `{{ index }}` and `{{ behavior }}`.
+- `generate-simulators.sh` - Bash script to create/delete simulators.
+- `generate-simulators.ps1` - PowerShell script equivalent.
+- `README.md` - This documentation.
+
+## Usage
+
+### Bash
+
+```bash
+# Create 20 simulators
+./generate-simulators.sh create 20
+# Delete all simulators
+./generate-simulators.sh delete
+```
+
+### PowerShell
+
+```powershell
+# Create 20 simulators
+.\generate-simulators.ps1 -Action create -Count 20
+# Delete all simulators
+.\generate-simulators.ps1 -Action delete
+```
+
+Ensure you have `oc` or `kubectl` in your PATH and are logged into the appropriate cluster with access to the target namespace (`kpulse` by default).
