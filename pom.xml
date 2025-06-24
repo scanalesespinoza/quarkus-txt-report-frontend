@@ -10,9 +10,9 @@
     <packaging>jar</packaging>
 
     <properties>
-        <!-- Java 17 LTS -->
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <!-- Java 21 LTS -->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -102,7 +102,7 @@
 
     <build>
         <plugins>
-            <!-- 1) Maven Compiler Plugin para Java 17 -->
+            <!-- 1) Maven Compiler Plugin para Java 21 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
