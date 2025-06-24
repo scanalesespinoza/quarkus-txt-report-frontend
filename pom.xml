@@ -6,7 +6,7 @@
 
     <groupId>com.scanales.quarkus</groupId>
     <artifactId>txt-report-frontend</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -97,7 +97,16 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-swagger-ui</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -125,6 +134,17 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- Junit -->
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${quarkus-plugin.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>
