@@ -1,39 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
   <title>Resumen de Indisponibilidad</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
-  <script
-    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 2rem;
-    }
-
-    #chartContainer {
-      width: 80%;
-      margin: auto;
-      height: 400px;
-    }
-
-    #chartContainer canvas {
-      cursor: pointer;
-    }
-
-    #datePickerContainer {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    #chartContainer { width: 80%; margin: auto; height: 400px; }
+    #chartContainer canvas { cursor: pointer; }
+    #datePickerContainer { text-align: center; margin-bottom: 1.5rem; }
   </style>
 </head>
 
 <body>
   <h1>Gráfico de % Indisponibilidad por Día</h1>
-  <p>Seleccione una fecha y haga clic en un punto para ver el detalle del reporte.</p>
+  <p>Seleccione una fecha y haga clic en un punto para ver el detalle del reporte o sobre una hora para filtrar ±30 min.</p>
 
   <div id="datePickerContainer">
     <label for="datePicker">Seleccionar día:</label>
@@ -43,9 +26,8 @@
   <div id="chartContainer">
     <canvas id="summaryChart"></canvas>
   </div>
-  <!-- Agrega este botón dentro del <body> -->
-  <button id="backBtn" style="display:none; margin: 1rem auto; display: block;" onclick="resetToDailyView()">Volver al
-    resumen diario</button>
+
+  <button id="backBtn" style="display:none; margin: 1rem auto; display: block;" onclick="resetToDailyView()">Volver al resumen diario</button>
 
   <script>
     let previousScrollY = 0;
@@ -60,7 +42,7 @@
       {/each}
     ];
     console.log("summaryData:", summaryData);
-    
+
     let currentDate = null;
     let chart;
 
@@ -77,32 +59,28 @@
 
       const datePicker = document.getElementById('datePicker');
       const today = new Date().toISOString().split('T')[0];
-
       const minDate = uniqueDates[0];
       const maxDate = uniqueDates[uniqueDates.length - 1];
       datePicker.min = minDate;
       datePicker.max = maxDate;
-
       const defaultDate = uniqueDates.includes(today) ? today : minDate;
       datePicker.value = defaultDate;
       currentDate = defaultDate;
 
       function renderChart(data, title) {
-        const labels = data.map(d => d.uploadTime);
-        const percentages = data.map(d => d.percentage);
-
-        const maxY = Math.max(...percentages, 10);
-        const dynamicMax = maxY <= 10 ? 10 : 100;
-
         if (chart) chart.destroy();
         const ctx = chartCanvas.getContext('2d');
+
         chart = new Chart(ctx, {
           type: 'line',
           data: {
-            labels,
             datasets: [{
               label: title,
-              data: percentages,
+              data: data.map(d => ({
+                x: d.uploadTime,
+                y: d.percentage,
+                reportName: d.reportName
+              })),
               fill: false,
               borderColor: 'red',
               backgroundColor: 'rgba(255,0,0,0.2)',
@@ -115,21 +93,10 @@
             responsive: true,
             maintainAspectRatio: false,
             onClick: (evt, elements) => {
-              if (elements.length) {
+              if (elements.length > 0) {
                 const idx = elements[0].index;
-                const selectedTime = new Date(chart.data.labels[idx]);
-                const selectedHour = selectedTime.getHours();
-
-                const hourData = summaryData.filter(d => {
-                  const dTime = new Date(d.uploadTime);
-                  return dTime.toISOString().startsWith(currentDate) &&
-                    dTime.getHours() === selectedHour;
-                });
-                previousScrollY = window.scrollY;
-                previousScrollX = window.scrollX;
-
-                renderChart(hourData, "Detalle de " + selectedHour + ":00");
-                backBtn.style.display = 'block';
+                const name = chart.data.datasets[0].data[idx].reportName;
+                window.location.href = '/report-detail?name=' + encodeURIComponent(name);
               }
             },
             scales: {
@@ -143,7 +110,7 @@
               },
               y: {
                 beginAtZero: true,
-                suggestedMax: dynamicMax,
+                suggestedMax: Math.max(...data.map(d => d.percentage), 10),
                 title: { display: true, text: '% Indisponibilidad' }
               }
             },
@@ -155,13 +122,38 @@
             }
           }
         });
+
+        // Clic en etiqueta de hora (eje X) -> filtrar ±30 min
+        chartCanvas.onclick = function (evt) {
+          const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
+          if (points.length > 0) return; // ya manejado
+
+          const xScale = chart.scales.x;
+          const xValue = xScale.getValueForPixel(evt.offsetX);
+          if (!xValue) return;
+
+          const selectedTime = new Date(xValue);
+          const minTime = new Date(selectedTime.getTime() - 30 * 60 * 1000);
+          const maxTime = new Date(selectedTime.getTime() + 30 * 60 * 1000);
+
+          const filtered = summaryData.filter(d => {
+            const t = new Date(d.uploadTime);
+            return t >= minTime && t <= maxTime;
+          });
+
+          if (filtered.length > 0) {
+            previousScrollY = window.scrollY;
+            previousScrollX = window.scrollX;
+            renderChart(filtered, "±30min desde " + selectedTime.getHours() + ":00");
+            backBtn.style.display = 'block';
+          }
+        };
       }
 
       function resetToDailyView() {
         renderChartForDate(currentDate);
         backBtn.style.display = 'none';
         window.scrollTo(previousScrollX, previousScrollY);
-
       }
 
       function renderChartForDate(date) {
@@ -181,7 +173,5 @@
       renderChartForDate(defaultDate);
     }
   </script>
-
 </body>
-
 </html>

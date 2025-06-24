@@ -33,7 +33,7 @@ in your OpenShift/Kubernetes cluster for testing purposes.
 Ensure you have `oc` or `kubectl` in your PATH and are logged into the appropriate cluster with access to the target namespace (`kpulse` by default).
 
 
-´´´
+```bash
 PS C:\Users\sergio\git\quarkus-txt-report-frontend\utilities> .\mvnw clean package `
 >>   '-Dquarkus.package.type=native' `
 >>   '-Dquarkus.native.container-build=true' `
@@ -46,4 +46,17 @@ PS C:\Users\sergio\git\quarkus-txt-report-frontend\utilities> .\mvnw clean packa
 >>   '-Dquarkus.container-image.group=sergio_canales_e/quarkus' `
 >>   '-Dquarkus.container-image.name=txt-report-frontend' `
 >>   '-Dquarkus.container-image.tag=1.0.4' 
-´´´
+```
+
+Delete all health-behavior-simulator-sim
+
+```ps1
+$deployments = oc get deploy -o name | Where-Object { $_ -like "*health-behavior-simulator-sim-*" }
+foreach ($d in $deployments) {
+    oc delete $d
+}
+```
+
+```bash
+oc get deploy -n <tu-namespace> -o name | grep 'health-behavior-simulator-sim-' | xargs oc delete -n <tu-namespace>
+```
