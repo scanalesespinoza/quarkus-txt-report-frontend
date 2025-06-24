@@ -1,27 +1,55 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <title>Resumen de Indisponibilidad</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; }
-    #chartContainer { width: 80%; margin: auto; height: 400px; }
-    #chartContainer canvas { cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+    }
+
+    #chartContainer {
+      width: 80%;
+      margin: auto;
+      height: 400px;
+    }
+
+    #chartContainer canvas {
+      cursor: pointer;
+    }
+
+    #datePickerContainer {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
   </style>
 </head>
+
 <body>
-  <h1>Gráfico de % Indisponibilidad vs Timestamp</h1>
-  <p>Haga clic en un punto para ver el detalle del reporte.</p>
+  <h1>Gráfico de % Indisponibilidad por Día</h1>
+  <p>Seleccione una fecha y haga clic en un punto para ver el detalle del reporte.</p>
+
+  <div id="datePickerContainer">
+    <label for="datePicker">Seleccionar día:</label>
+    <input type="date" id="datePicker" />
+  </div>
 
   <div id="chartContainer">
     <canvas id="summaryChart"></canvas>
   </div>
+  <!-- Agrega este botón dentro del <body> -->
+  <button id="backBtn" style="display:none; margin: 1rem auto; display: block;" onclick="resetToDailyView()">Volver al
+    resumen diario</button>
 
   <script>
-    // Inyectar data desde servidor con Qute
+    let previousScrollY = 0;
+    let previousScrollX = 0;
     const summaryData = [
       {#each summaries}
         {
@@ -32,62 +60,128 @@
       {/each}
     ];
     console.log("summaryData:", summaryData);
+    
+    let currentDate = null;
+    let chart;
+
+    const chartCanvas = document.getElementById('summaryChart');
+    const backBtn = document.getElementById('backBtn');
 
     if (summaryData.length === 0) {
       document.getElementById('chartContainer').innerHTML =
         '<div style="text-align:center;color:#666;padding:2rem;">No hay reportes disponibles.</div>';
     } else {
-      // Ordenar por uploadTime
-      summaryData.sort((a, b) => new Date(a.uploadTime) - new Date(b.uploadTime));
+      const uniqueDates = [...new Set(summaryData.map(d =>
+        new Date(d.uploadTime).toISOString().split('T')[0]
+      ))];
 
-      const labels      = summaryData.map(d => d.uploadTime);
-      const percentages = summaryData.map(d => d.percentage);
-      const reportNames = summaryData.map(d => d.reportName);
+      const datePicker = document.getElementById('datePicker');
+      const today = new Date().toISOString().split('T')[0];
 
-      const ctx = document.getElementById('summaryChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: '% Indisponibilidad',
-            data: percentages,
-            fill: false,
-            borderColor: 'red',
-            backgroundColor: 'rgba(255,0,0,0.2)',
-            borderWidth: 2,
-            pointRadius: 5,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          onClick: (evt, elements) => {
-            if (elements.length) {
-              const idx = elements[0].index;
-              const name = reportNames[idx];
-              window.location.href = '/report-detail?name=' + encodeURIComponent(name);
-            }
+      const minDate = uniqueDates[0];
+      const maxDate = uniqueDates[uniqueDates.length - 1];
+      datePicker.min = minDate;
+      datePicker.max = maxDate;
+
+      const defaultDate = uniqueDates.includes(today) ? today : minDate;
+      datePicker.value = defaultDate;
+      currentDate = defaultDate;
+
+      function renderChart(data, title) {
+        const labels = data.map(d => d.uploadTime);
+        const percentages = data.map(d => d.percentage);
+
+        const maxY = Math.max(...percentages, 10);
+        const dynamicMax = maxY <= 10 ? 10 : 100;
+
+        if (chart) chart.destroy();
+        const ctx = chartCanvas.getContext('2d');
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: title,
+              data: percentages,
+              fill: false,
+              borderColor: 'red',
+              backgroundColor: 'rgba(255,0,0,0.2)',
+              borderWidth: 2,
+              pointRadius: 5,
+              tension: 0.3
+            }]
           },
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                unit: 'hour',
-                displayFormats: { hour: 'HH:mm' }
-              },
-              title: { display: true, text: 'Timestamp (uploadTime)' }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onClick: (evt, elements) => {
+              if (elements.length) {
+                const idx = elements[0].index;
+                const selectedTime = new Date(chart.data.labels[idx]);
+                const selectedHour = selectedTime.getHours();
+
+                const hourData = summaryData.filter(d => {
+                  const dTime = new Date(d.uploadTime);
+                  return dTime.toISOString().startsWith(currentDate) &&
+                    dTime.getHours() === selectedHour;
+                });
+                previousScrollY = window.scrollY;
+                previousScrollX = window.scrollX;
+
+                renderChart(hourData, "Detalle de " + selectedHour + ":00");
+                backBtn.style.display = 'block';
+              }
             },
-            y: {
-              beginAtZero: true,
-              max: 100,
-              title: { display: true, text: '% Indisponibilidad' }
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                  unit: 'minute',
+                  displayFormats: { minute: 'HH:mm' }
+                },
+                title: { display: true, text: 'Hora' }
+              },
+              y: {
+                beginAtZero: true,
+                suggestedMax: dynamicMax,
+                title: { display: true, text: '% Indisponibilidad' }
+              }
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: title
+              }
             }
           }
-        }
+        });
+      }
+
+      function resetToDailyView() {
+        renderChartForDate(currentDate);
+        backBtn.style.display = 'none';
+        window.scrollTo(previousScrollX, previousScrollY);
+
+      }
+
+      function renderChartForDate(date) {
+        currentDate = date;
+        const filtered = summaryData.filter(d =>
+          d.uploadTime.startsWith(date)
+        ).sort((a, b) => new Date(a.uploadTime) - new Date(b.uploadTime));
+
+        renderChart(filtered, "% Indisponibilidad – " + date);
+      }
+
+      datePicker.addEventListener('change', () => {
+        renderChartForDate(datePicker.value);
+        backBtn.style.display = 'none';
       });
+
+      renderChartForDate(defaultDate);
     }
   </script>
+
 </body>
+
 </html>
