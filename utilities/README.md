@@ -31,3 +31,19 @@ in your OpenShift/Kubernetes cluster for testing purposes.
 ```
 
 Ensure you have `oc` or `kubectl` in your PATH and are logged into the appropriate cluster with access to the target namespace (`kpulse` by default).
+
+
+´´´
+PS C:\Users\sergio\git\quarkus-txt-report-frontend\utilities> .\mvnw clean package `
+>>   '-Dquarkus.package.type=native' `
+>>   '-Dquarkus.native.container-build=true' `
+>>   '-Dquarkus.native.container-runtime=podman' `
+>>   '-Dquarkus.native.builder-image=quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-21' `
+>>   '-Dquarkus.container-image.builder=podman' `
+>>   '-Dquarkus.container-image.build=true' `
+>>   '-Dquarkus.container-image.push=true' `
+>>   '-Dquarkus.container-image.registry=quay.io' `
+>>   '-Dquarkus.container-image.group=sergio_canales_e/quarkus' `
+>>   '-Dquarkus.container-image.name=txt-report-frontend' `
+>>   '-Dquarkus.container-image.tag=1.0.4' 
+´´´
