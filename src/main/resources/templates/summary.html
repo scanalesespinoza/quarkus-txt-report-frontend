@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11,9 +12,9 @@
     #chartContainer { width: 80%; margin: auto; height: 400px; }
     #chartContainer canvas { cursor: pointer; }
     #datePickerContainer { text-align: center; margin-bottom: 1.5rem; }
+    canvas:hover { cursor: pointer; }
   </style>
 </head>
-
 <body>
   <h1>Gráfico de % Indisponibilidad por Día</h1>
   <p>Seleccione una fecha y haga clic en un punto para ver el detalle del reporte o sobre una hora para filtrar ±30 min.</p>
@@ -41,11 +42,9 @@
         }{#if !it_isLast},{/if}
       {/each}
     ];
-    console.log("summaryData:", summaryData);
 
     let currentDate = null;
     let chart;
-
     const chartCanvas = document.getElementById('summaryChart');
     const backBtn = document.getElementById('backBtn');
 
@@ -102,10 +101,7 @@
             scales: {
               x: {
                 type: 'time',
-                time: {
-                  unit: 'minute',
-                  displayFormats: { minute: 'HH:mm' }
-                },
+                time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
                 title: { display: true, text: 'Hora' }
               },
               y: {
@@ -115,18 +111,14 @@
               }
             },
             plugins: {
-              title: {
-                display: true,
-                text: title
-              }
+              title: { display: true, text: title }
             }
           }
         });
 
-        // Clic en etiqueta de hora (eje X) -> filtrar ±30 min
         chartCanvas.onclick = function (evt) {
           const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
-          if (points.length > 0) return; // ya manejado
+          if (points.length > 0) return;
 
           const xScale = chart.scales.x;
           const xValue = xScale.getValueForPixel(evt.offsetX);
@@ -158,20 +150,35 @@
 
       function renderChartForDate(date) {
         currentDate = date;
-        const filtered = summaryData.filter(d =>
-          d.uploadTime.startsWith(date)
-        ).sort((a, b) => new Date(a.uploadTime) - new Date(b.uploadTime));
+        const startOfDay = new Date(date + 'T00:00:00');
+        const endOfDay = new Date(date + 'T23:59:59');
+
+        const filtered = summaryData.filter(d => {
+          const t = new Date(d.uploadTime);
+          return t >= startOfDay && t <= endOfDay;
+        }).sort((a, b) => new Date(a.uploadTime) - new Date(b.uploadTime));
 
         renderChart(filtered, "% Indisponibilidad – " + date);
       }
 
       datePicker.addEventListener('change', () => {
         renderChartForDate(datePicker.value);
-        backBtn.style.display = 'none';
+        backBtn.style.display = 'block';
       });
 
       renderChartForDate(defaultDate);
     }
   </script>
+
+<hr>
+<h2>Manual de Uso</h2>
+<ul>
+  <li><strong>Selector de fecha:</strong> Use el calendario para seleccionar un día con reportes disponibles.</li>
+  <li><strong>Gráfico interactivo:</strong> Cada punto representa un reporte. Puede hacer clic en el punto para ver el detalle completo del reporte.</li>
+  <li><strong>Filtro por hora:</strong> Al hacer clic en la etiqueta del eje X (hora), se filtrará el gráfico mostrando datos dentro de ±30 minutos desde esa hora.</li>
+  <li><strong>Botón "Volver al resumen diario":</strong> Aparece tras aplicar un filtro horario y permite regresar al resumen completo del día seleccionado.</li>
+  <li><strong>Interactividad visual:</strong> Las etiquetas del eje X cambian el cursor al pasar sobre ellas para indicar que son clickeables.</li>
+</ul>
+
 </body>
 </html>
