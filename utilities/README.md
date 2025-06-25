@@ -45,7 +45,7 @@ PS C:\Users\sergio\git\quarkus-txt-report-frontend\utilities> .\mvnw clean packa
    '-Dquarkus.container-image.registry=quay.io' `
    '-Dquarkus.container-image.group=sergio_canales_e/quarkus' `
    '-Dquarkus.container-image.name=txt-report-frontend' `
-   '-Dquarkus.container-image.tag=1.0.4'
+   '-Dquarkus.container-image.tag=1.0.8' `
    quarkus:image-build
 ```
 
