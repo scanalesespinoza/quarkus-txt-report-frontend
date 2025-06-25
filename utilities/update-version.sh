@@ -25,6 +25,9 @@ APP_PROPS="$ROOT_DIR/src/main/resources/application.properties"
 echo "🔧 Actualizando a versión $VERSION..."
 echo "📁 Directorio raíz: $ROOT_DIR"
 
+# Cambiar saltos de lunea a Unix (LF) en pom.xml y application.properties
+dos2unix "$POM_FILE" "$APP_PROPS"
+
 # 1. Actualizar <version> en pom.xml (solo la primera aparición)
 echo "🔄 Actualizando pom.xml..."
 sed -i "0,/<version>.*<\/version>/s|<version>.*</version>|<version>$VERSION</version>|" "$POM_FILE"
