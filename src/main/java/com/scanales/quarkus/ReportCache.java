@@ -41,8 +41,8 @@ public class ReportCache {
             Iterator<String> it = cache.keySet().iterator();
             String eldest = it.next();
             it.remove();
-            // log (si quieres)
-            System.out.printf("Evicted report '%s' (heap uso=%.1f%%)%n", eldest, usedPct);
+            // Log de la expulsión del reporte más antiguo
+            LOG.debugf("Evicted report '%s' (heap uso=%.1f%%)", eldest, usedPct);
         }
 
         // Insertamos/reemplazamos el reporte
