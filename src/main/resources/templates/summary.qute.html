@@ -1,0 +1,51 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Resumen de Indisponibilidad</title>
+  <link href="/style.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+  <header class="dashboard-header">
+    <h1>📊 PulseState – Dashboard de Indisponibilidad</h1>
+    <p>Herramienta para ingenieros de plataformas 🚀</p>
+  </header>
+
+  <div class="dashboard">
+    <section class="controls">
+      <label for="datePicker">📅 Seleccionar día:</label>
+      <input id="datePicker" type="date"/>
+    </section>
+    <section class="chart-area">
+      <canvas id="summaryChart"></canvas>
+      <button id="backBtn" onclick="resetToDailyView()">🔙 Volver al resumen diario</button>
+    </section>
+    <section class="manual">
+      <h2>📘 Manual Rápido de Uso</h2>
+      <ul>
+        <li>📅 Selecciona el día deseado con el calendario para ver reportes.</li>
+        <li>🕒 Haz clic en una <b>hora</b> para filtrar ±30 minutos de reportes.</li>
+        <li>🔍 Haz clic en un <b>punto</b> del gráfico para ir al detalle del reporte.</li>
+        <li>↩️ Usa <i>"Volver al resumen diario"</i> para salir del filtro por hora.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script>
+    let summaryData = [
+      {#each summaries}
+        {
+          reportName: "{it.name}",
+          percentage: {it.summaryPercentage},
+          uploadTime: "{it.uploadTime}"
+        }{#if !it_isLast},{/if}
+      {/each}
+    ];
+  </script>
+  <script src="/script.js"></script>
+</body>
+</html>
