@@ -21,8 +21,7 @@ public class ReportDetailResource {
     ReportCache cache;
 
     @Inject
-    Template detail; // src/main/resources/templates/detail.html
-
+    Template detail;
     @GET
     public Response view(@QueryParam("name") String name) {
         if (name == null || name.isBlank()) {

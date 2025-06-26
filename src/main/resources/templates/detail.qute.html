@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Detalle del Reporte: {reportName}</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="dashboard-header">
+    <h1>📝 Detalle del Reporte: {reportName}</h1>
+    <p>Detalles específicos de la carga de trabajo analizada.</p>
+    <a href="/" class="back-link">← Volver al resumen</a>
+  </header>
+
+  <section class="report-metadata">
+    <p><strong>📤 Subido en:</strong> {uploadTime}</p>
+  </section>
+
+  <section class="table-area">
+    <table>
+      <thead>
+        <tr>
+          <th>📦 Namespace</th>
+          <th>🚀 Deployment</th>
+          <th>⏱ Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each entries}
+        <tr>
+          <td>{it.namespace}</td>
+          <td>{it.deployment}</td>
+          <td>{it.timestamp}</td>
+        </tr>
+        {/each}
+        <tr class="summary">
+          <td colspan="2">📊 RESUMEN % Indisponibilidad</td>
+          <td>{summary}%</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</body>
+</html>

@@ -18,7 +18,7 @@ public class SummaryUIResource {
     ReportCache cache;
 
     @Inject
-    Template summary; // src/main/resources/templates/summary.html
+    Template summary;
 
     @GET
     public String view() {
