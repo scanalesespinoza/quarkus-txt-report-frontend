@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-behavior-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: health-behavior-simulator
+  template:
+    metadata:
+      labels:
+        app: health-behavior-simulator
+    spec:
+      containers:
+        - name: health-sim
+          image: registry.access.redhat.com/ubi10/ubi-minimal
+          env:
+            - name: BEHAVIOR
+              value: "notready"       # ok | restart | notready
+          command:
+            - sh
+            - -c
+            - |
+              echo "[$(date -u)] starting with BEHAVIOR=$BEHAVIOR"
+              if [ "$BEHAVIOR" = "restart" ]; then
+                sleep 60
+                echo "[$(date -u)] simulating crash to trigger restart"
+                exit 1
+              else
+                while true; do
+                  echo "[$(date -u)] running normally (BEHAVIOR=$BEHAVIOR)"
+                  sleep 30
+                done
+              fi
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  if [ "$BEHAVIOR" = "notready" ]; then
+                    echo "[$(date -u)] readiness probe failing"
+                    exit 1
+                  else
+                    exit 0
+                  fi
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  exit 0
+            initialDelaySeconds: 15
+            periodSeconds: 20

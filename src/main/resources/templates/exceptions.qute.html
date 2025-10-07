@@ -1,0 +1,59 @@
+<!-- exceptions.qute.html -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Dashboard de Excepciones</title>
+    <link href="/style.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+
+<body>
+    <header class="dashboard-header">
+        <h1>⚡ Dashboard de Excepciones Java</h1>
+        <p>Visualiza errores de ejecución para detectar patrones y puntos críticos ⚡</p>
+        <nav class="nav-links">
+            <a href="/home" class="nav-link">🏠 Ir al Home</a>
+        </nav>
+    </header>
+
+    <div class="dashboard">
+        <section class="controls">
+            <label for="datePicker">📅 Seleccionar día:</label>
+            <input id="datePicker" type="date" />
+        </section>
+        <section class="chart-area">
+            <canvas id="exceptionsChart"></canvas>
+            <button id="backBtn" onclick="resetToDailyView()">🔙 Volver al resumen diario</button>
+        </section>
+        <section class="manual">
+            <h2>📘 Manual Rápido de Uso</h2>
+            <ul>
+                <li>📅 Selecciona el día deseado con el calendario.</li>
+                <li>🕒 Haz clic en una <b>hora</b> para filtrar ±30 minutos de eventos.</li>
+                <li>🔍 Haz clic en un <b>punto</b> del gráfico para ver el detalle de la excepción.</li>
+                <li>↩ Usa <i>"Volver al resumen diario"</i> para salir del filtro.</li>
+            </ul>
+        </section>
+    </div>
+
+    <script>
+        let exceptionData = [
+            { #each exceptions }
+        {
+                type: "{it.type}",
+                message: "{it.message}",
+                timestamp: "{it.timestamp}",
+                id: "{it.id}"
+            }{ #if !it_isLast }, {/if}
+        {/each }
+    ];
+    </script>
+    <script src="/exceptions.js"></script>
+</body>
+
+</html>

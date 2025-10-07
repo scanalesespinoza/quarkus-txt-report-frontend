@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @ApplicationScoped
 public class ReportCache {
@@ -22,6 +23,16 @@ public class ReportCache {
      */
     @ConfigProperty(name = "app.eviction.threshold", defaultValue = "90.0")
     double evictionThreshold;
+
+    private final Map<String, ExceptionReport> exceptionReports = new ConcurrentHashMap<>();
+
+    public Map<String, ExceptionReport> listExceptions() {
+        return exceptionReports;
+    }
+
+    public void addExceptionReport(ExceptionReport report) {
+        exceptionReports.put(report.getId(), report);
+    }
 
     @PostConstruct
     void init() {
@@ -63,4 +74,5 @@ public class ReportCache {
         LOG.debugf("Memoria JVM (bytes): max=%d, total=%d, free=%d, used=%d",
                 max, total, free, (total - free));
     }
+
 }

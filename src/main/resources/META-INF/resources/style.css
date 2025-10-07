@@ -42,13 +42,15 @@ body {
   width: 100%;
   max-width: 1200px;
   margin: auto;
-  height: auto; /* Deja el canvas controlar el alto */
+  height: auto;
+  /* Deja el canvas controlar el alto */
   position: relative;
 }
 
 .chart-area canvas {
   width: 100% !important;
-  height: 400px !important; /* Usa altura fija, no % */
+  height: 400px !important;
+  /* Usa altura fija, no % */
   max-height: 400px;
   display: block;
   cursor: pointer;
@@ -86,4 +88,19 @@ canvas {
 
 .manual li {
   margin: 0.5rem 0;
+}
+
+.nav-links {
+  margin-top: 1rem;
+}
+
+.nav-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: bold;
+  margin: 0 1rem;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
 }
