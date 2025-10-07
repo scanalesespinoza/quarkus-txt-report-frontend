@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: send-not-ready
+spec:
+  # Runs every 2 minutes by default. Adjust to your needs.
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: checker
+              image: registry.redhat.io/openshift4/ose-tools-rhel9
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - "/scripts/run.sh"
+              env:
+                - name: TEAMS_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: teams-webhook-secret
+                      key: url
+                - name: FRONTEND_URL
+                  value: "http://txt-report-frontend-svc:8080"
+              volumeMounts:
+                - name: script-vol
+                  mountPath: /scripts
+          volumes:
+            - name: script-vol
+              configMap:
+                name: send-not-ready-script
+                defaultMode: 0755
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1

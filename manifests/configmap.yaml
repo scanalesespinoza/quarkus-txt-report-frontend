@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: send-not-ready-script
+data:
+  run.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    timestamp() {
+      date -u +"%Y-%m-%dT%H:%M:%SZ"
+    }
+
+    log() {
+      echo "[$(timestamp)] $1"
+    }
+
+    log "+++ starting send-not-ready script +++"
+
+    TEAMS_WEBHOOK_URL="${TEAMS_WEBHOOK_URL:-}"
+    FRONTEND_URL="${FRONTEND_URL:-}"
+
+    if [ -z "$TEAMS_WEBHOOK_URL" ]; then
+      log "ERROR: TEAMS_WEBHOOK_URL is not set"
+      exit 1
+    fi
+    if [ -z "$FRONTEND_URL" ]; then
+      log "ERROR: FRONTEND_URL is not set"
+      exit 1
+    fi
+
+    now_ts="$(timestamp)"
+    log "timestamp: $now_ts"
+
+    namespaces="$(oc projects -q 2>/dev/null || true)"
+    log "namespaces detected: [$namespaces]"
+    if [ -z "$namespaces" ]; then
+      log "no namespaces available. exiting without error."
+      exit 0
+    fi
+
+    csv_file="/tmp/not_ready_resources.csv"
+    if ! echo "namespace,resource,type,timestamp" > "$csv_file"; then
+      mkdir -p "$HOME/tmp"
+      csv_file="$HOME/tmp/not_ready_resources.csv"
+      echo "namespace,resource,type,timestamp" > "$csv_file"
+    fi
+    log "csv header written to $csv_file"
+
+    deploy_total=0
+    deploy_not_ready=0
+    dc_total=0
+    dc_not_ready=0
+    ns_with_issues=0
+
+    for ns in $namespaces; do
+      log "--- inspecting namespace: $ns ---"
+      ns_has_issue=false
+
+      deploys_raw="$(oc get deploy -n "$ns" --no-headers 2>/dev/null || true)"
+      if [ -n "$deploys_raw" ]; then
+        while IFS= read -r line; do
+          [ -z "$line" ] && continue
+          read -r name ready_field _ <<< "$line"
+          ready="${ready_field%%/*}"
+          desired="${ready_field##*/}"
+          deploy_total=$((deploy_total + 1))
+          if [ "$ready" -ne "$desired" ]; then
+            log "deployment not ready: namespace=$ns name=$name ($ready/$desired)"
+            echo "$ns,$name,Deployment,$now_ts" >> "$csv_file"
+            deploy_not_ready=$((deploy_not_ready + 1))
+            ns_has_issue=true
+          fi
+        done <<< "$deploys_raw"
+      else
+        log "no deployments found for namespace $ns"
+      fi
+
+      dcs_json="$(oc get dc -n "$ns" -o json 2>/dev/null || true)"
+      if [ -n "$dcs_json" ] && [ "$(echo "$dcs_json" | jq '.items | length')" -gt 0 ]; then
+        dc_count="$(echo "$dcs_json" | jq '.items | length')"
+        for i in $(seq 0 $((dc_count - 1))); do
+          name="$(echo "$dcs_json" | jq -r ".items[$i].metadata.name")"
+          desired="$(echo "$dcs_json" | jq -r ".items[$i].spec.replicas // 0")"
+          available="$(echo "$dcs_json" | jq -r ".items[$i].status.availableReplicas // 0")"
+          dc_total=$((dc_total + 1))
+          if [ "$available" -lt "$desired" ]; then
+            log "deploymentconfig not available: namespace=$ns name=$name ($available/$desired)"
+            echo "$ns,$name,DeploymentConfig,$now_ts" >> "$csv_file"
+            dc_not_ready=$((dc_not_ready + 1))
+            ns_has_issue=true
+          fi
+        done
+      else
+        log "no deploymentconfigs found for namespace $ns"
+      fi
+
+      if [ "$ns_has_issue" = true ]; then
+        ns_with_issues=$((ns_with_issues + 1))
+        log "namespace $ns has issues"
+      else
+        log "namespace $ns is healthy"
+      fi
+    done
+
+    log "deployments checked: $deploy_total"
+    log "deployments not ready: $deploy_not_ready"
+    log "deploymentconfigs checked: $dc_total"
+    log "deploymentconfigs not available: $dc_not_ready"
+
+    total_checked=$((deploy_total + dc_total))
+    total_not_ready=$((deploy_not_ready + dc_not_ready))
+    if [ "$total_checked" -gt 0 ]; then
+      percent_not_ready=$(echo "scale=2; 100 * $total_not_ready / $total_checked" | bc -l)
+    else
+      percent_not_ready="0.00"
+    fi
+    echo "percent_not_ready,,,$percent_not_ready" >> "$csv_file"
+    log "percent of resources not ready: $percent_not_ready"
+
+    report_name="not-ready-$(date -u +%Y%m%d%H%M)"
+    upload_url="$FRONTEND_URL/reports/upload?name=$report_name"
+    log "sending csv to $upload_url"
+    if curl -s -X POST \
+        -H "Content-Type: text/plain" \
+        --data-binary @"$csv_file" \
+        "$upload_url"; then
+      log "csv uploaded: $report_name"
+    else
+      log "warning: failed to upload csv to frontend"
+    fi
+
+    log "sending summary to Microsoft Teams"
+    body="#### Resources not ready or not available\n"
+    body+="Namespaces with issues: \`$ns_with_issues\`\n"
+    body+="Deployments checked: \`$deploy_total\` / Not ready: \`$deploy_not_ready\`\n"
+    body+="DeploymentConfigs checked: \`$dc_total\` / Not available: \`$dc_not_ready\`\n"
+    body+="Percent not ready: \`$percent_not_ready%\`\n\n"
+    body+="[Open summary]($FRONTEND_URL/summary-page)\n"
+    body+="[Open details]($FRONTEND_URL/detail-page?name=$report_name)\n"
+    escaped_body="$(printf '%s' "$body" | sed ':a;N;$!ba;s/\n/\\n/g')"
+
+    json_body=$(cat <<EOF
+    {
+      "@type": "MessageCard",
+      "@context": "https://schema.org/extensions",
+      "summary": "Resources not ready in OpenShift",
+      "themeColor": "FF0000",
+      "title": "Resources not ready or not available",
+      "sections": [
+        {
+          "markdown": true,
+          "text": "${escaped_body}"
+        }
+      ]
+    }
+    EOF
+    )
+
+    if curl -s -X POST \
+        -H "Content-Type: application/json" \
+        -d "$json_body" \
+        "$TEAMS_WEBHOOK_URL"; then
+      log "summary sent to Microsoft Teams"
+    else
+      log "warning: failed to post summary to Microsoft Teams"
+    fi
+
+    log "--- finished send-not-ready script ---"
+    exit 0

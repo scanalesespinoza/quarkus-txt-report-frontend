@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>PulseState – Home Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="dashboard-header">
+    <h1>🧭 PulseState – Panel Principal</h1>
+    <p>Visibilidad integral de la plataforma: errores, flujos, reportes y más.</p>
+  </header>
+
+  <section class="controls">
+    <p>Selecciona el tipo de información que deseas visualizar:</p>
+  </section>
+
+  <section class="dashboard-selector">
+    <ul class="dashboard-list">
+      {#if hasSummaryReports}
+      <li>
+        <a class="nav-link" href="/">📊 Ver Reportes de Indisponibilidad</a>
+      </li>
+      {/if}
+      {#if hasExceptionReports}
+      <li>
+        <a class="nav-link" href="/exceptions">🚨 Ver Excepciones Java</a>
+      </li>
+      {/if}
+      {#if !hasSummaryReports && !hasExceptionReports}
+      <li>
+        <p>⚠️ No hay datos disponibles por ahora.</p>
+      </li>
+      {/if}
+    </ul>
+  </section>
+
+  <footer class="manual">
+    <h2>ℹ️ Información</h2>
+    <p>Este panel se adapta automáticamente según la disponibilidad de datos en el sistema.</p>
+    <p>Administra y observa fácilmente los indicadores funcionales clave para equipos DevOps, SRE y Plataforma.</p>
+  </footer>
+</body>
+</html>
