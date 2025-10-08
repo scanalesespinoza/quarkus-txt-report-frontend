@@ -80,18 +80,40 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
+      - name: Log in to Quay.io for Podman
+        if: steps.publish.outputs.push == 'true'
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.QUAY_PASSWORD }}" | podman login "${{ env.REGISTRY }}" \
+            --username "${{ secrets.QUAY_USERNAME }}" --password-stdin
+
       - name: Build native executable and container image
         env:
           PUSH_IMAGE: ${{ steps.publish.outputs.push }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
         run: |
-          ./mvnw -B -ntp clean package \
-            -Dquarkus.package.type=native \
-            -Dquarkus.native.container-build=true \
-            -Dquarkus.native.container-runtime=docker \
-            -Dquarkus.container-image.builder=docker \
-            -Dquarkus.container-image.build=true \
-            -Dquarkus.container-image.registry=${REGISTRY} \
-            -Dquarkus.container-image.group=${IMAGE_REPOSITORY%/*} \
-            -Dquarkus.container-image.name=${IMAGE_REPOSITORY##*/} \
-            -Dquarkus.container-image.tag=${{ steps.meta.outputs.tag }} \
-            -Dquarkus.container-image.push=${PUSH_IMAGE}
+          set -euo pipefail
+
+          MAVEN_ARGS=(
+            "-B" "-ntp" "clean" "package"
+            "-Dquarkus.package.type=native"
+            "-Dquarkus.native.container-build=true"
+            "-Dquarkus.native.container-runtime=docker"
+            "-Dquarkus.container-image.builder=docker"
+            "-Dquarkus.container-image.build=true"
+            "-Dquarkus.container-image.registry=${REGISTRY}"
+            "-Dquarkus.container-image.group=${IMAGE_REPOSITORY%/*}"
+            "-Dquarkus.container-image.name=${IMAGE_REPOSITORY##*/}"
+            "-Dquarkus.container-image.tag=${{ steps.meta.outputs.tag }}"
+            "-Dquarkus.container-image.push=${PUSH_IMAGE}"
+          )
+
+          if [ "${PUSH_IMAGE}" = "true" ]; then
+            MAVEN_ARGS+=(
+              "-Dquarkus.container-image.username=${QUAY_USERNAME}"
+              "-Dquarkus.container-image.password=${QUAY_PASSWORD}"
+            )
+          fi
+
+          ./mvnw "${MAVEN_ARGS[@]}"

@@ -94,4 +94,4 @@ All manifests reside under `manifests/`.
 ## CI/CD
 - `.github/workflows/pr-validation.yml` builds and tests every pull request targeting `main` and enables auto-merge when the checks succeed.
 - `.github/workflows/maven-publish.yml` validates tagged releases and publishes the Maven artifact.
-- `.github/workflows/container-build.yml` compiles the native binary, builds the container image, and (optionally) pushes it to Quay. Configure the `QUAY_USERNAME` and `QUAY_PASSWORD` secrets to enable the push step.
+- `.github/workflows/container-build.yml` compiles the native binary, builds the container image, and (optionally) pushes it to Quay. Configure the `QUAY_USERNAME` and `QUAY_PASSWORD` secrets to enable the push step. When using a Quay robot account, set `QUAY_USERNAME` to the robot's full name (for example, `myorg+robot`) and `QUAY_PASSWORD` to its generated token so both Docker and Podman can authenticate during the workflow.
