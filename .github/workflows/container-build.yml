@@ -80,18 +80,27 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
+      - name: Prepare Podman auth file
+        if: steps.publish.outputs.push == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/.config/containers"
+          touch "${HOME}/.config/containers/auth.json"
+
       - name: Log in to Quay.io for Podman
         if: steps.publish.outputs.push == 'true'
         run: |
           set -euo pipefail
           echo "${{ secrets.QUAY_PASSWORD }}" | podman login "${{ env.REGISTRY }}" \
-            --username "${{ secrets.QUAY_USERNAME }}" --password-stdin
+            --username "${{ secrets.QUAY_USERNAME }}" --password-stdin \
+            --authfile "${HOME}/.config/containers/auth.json"
 
       - name: Build native executable and container image
         env:
           PUSH_IMAGE: ${{ steps.publish.outputs.push }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          PODMAN_AUTH_FILE: ${{ env.HOME }}/.config/containers/auth.json
         run: |
           set -euo pipefail
 
@@ -113,6 +122,7 @@ jobs:
             MAVEN_ARGS+=(
               "-Dquarkus.container-image.username=${QUAY_USERNAME}"
               "-Dquarkus.container-image.password=${QUAY_PASSWORD}"
+              "-Dquarkus.container-image.registry-auth-file=${PODMAN_AUTH_FILE}"
             )
           fi
 
