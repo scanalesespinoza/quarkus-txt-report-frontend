@@ -1,4 +1,4 @@
-name: Build Container Image
+name: Publish Native Image
 
 on:
   workflow_dispatch:
@@ -9,15 +9,18 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
+
+concurrency:
+  group: publish-native-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: quay.io
   IMAGE_REPOSITORY: sergio_canales_e/quarkus/txt-report-frontend
 
 jobs:
-  container:
+  publish:
+    if: github.ref == 'refs/heads/main' || github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,7 +45,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Ensure registry credentials for branch builds
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
+        if: github.event_name == 'push'
         run: |
           if [ -z "${{ secrets.QUAY_USERNAME }}" ] || [ -z "${{ secrets.QUAY_PASSWORD }}" ]; then
             echo "Quay.io credentials are required when building from main." >&2
@@ -54,8 +57,6 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.image-tag }}" ]; then
             tag="${{ github.event.inputs.image-tag }}"
-          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            tag="${GITHUB_REF_NAME#v}"
           else
             tag="$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)"
           fi
@@ -83,7 +84,7 @@ jobs:
         env:
           PUSH_IMAGE: ${{ steps.publish.outputs.push }}
         run: |
-          ./mvnw clean package \
+          ./mvnw -B -ntp clean package \
             -Dquarkus.package.type=native \
             -Dquarkus.native.container-build=true \
             -Dquarkus.native.container-runtime=docker \
