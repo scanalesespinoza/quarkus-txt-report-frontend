@@ -92,5 +92,6 @@ All manifests reside under `manifests/`.
 - `utilities/env_manager.*`: render `.env` files with common parameters.
 
 ## CI/CD
+- `.github/workflows/pr-validation.yml` builds and tests every pull request targeting `main` and enables auto-merge when the checks succeed.
 - `.github/workflows/maven-publish.yml` validates tagged releases and publishes the Maven artifact.
 - `.github/workflows/container-build.yml` compiles the native binary, builds the container image, and (optionally) pushes it to Quay. Configure the `QUAY_USERNAME` and `QUAY_PASSWORD` secrets to enable the push step.

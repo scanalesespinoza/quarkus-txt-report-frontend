@@ -7,6 +7,8 @@ on:
         description: Container image tag (defaults to pom version)
         required: false
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -39,6 +41,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Ensure registry credentials for branch builds
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
+        run: |
+          if [ -z "${{ secrets.QUAY_USERNAME }}" ] || [ -z "${{ secrets.QUAY_PASSWORD }}" ]; then
+            echo "Quay.io credentials are required when building from main." >&2
+            exit 1
+          fi
+
       - name: Resolve image tag
         id: meta
         run: |
@@ -52,8 +62,17 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Resolved image tag: $tag"
 
+      - name: Determine push flag
+        id: publish
+        run: |
+          if [ -n "${{ secrets.QUAY_USERNAME }}" ] && [ -n "${{ secrets.QUAY_PASSWORD }}" ]; then
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Log in to Quay.io
-        if: ${{ secrets.QUAY_USERNAME != '' && secrets.QUAY_PASSWORD != '' }}
+        if: steps.publish.outputs.push == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -61,6 +80,8 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
 
       - name: Build native executable and container image
+        env:
+          PUSH_IMAGE: ${{ steps.publish.outputs.push }}
         run: |
           ./mvnw clean package \
             -Dquarkus.package.type=native \
@@ -72,4 +93,4 @@ jobs:
             -Dquarkus.container-image.group=${IMAGE_REPOSITORY%/*} \
             -Dquarkus.container-image.name=${IMAGE_REPOSITORY##*/} \
             -Dquarkus.container-image.tag=${{ steps.meta.outputs.tag }} \
-            -Dquarkus.container-image.push=${{ secrets.QUAY_USERNAME != '' && secrets.QUAY_PASSWORD != '' }}
+            -Dquarkus.container-image.push=${PUSH_IMAGE}
