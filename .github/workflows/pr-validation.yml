@@ -3,7 +3,7 @@ name: PR Validation
 on:
   pull_request:
     branches:
-      - main
+      - master
     types:
       - opened
       - synchronize
@@ -47,7 +47,7 @@ jobs:
     if: >
       github.event.action != 'closed' &&
       github.event.pull_request.draft == false &&
-      github.event.pull_request.base.ref == 'main'
+      github.event.pull_request.base.ref == 'master'
     steps:
       - name: Enable auto-merge
         uses: peter-evans/enable-pull-request-automerge@v3
@@ -63,7 +63,7 @@ jobs:
     if: |
       github.event.action == 'closed' &&
       github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.base.ref == 'master' &&
       github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Delete merged branch

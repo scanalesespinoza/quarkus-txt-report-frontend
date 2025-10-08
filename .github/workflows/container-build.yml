@@ -8,7 +8,7 @@ on:
         required: false
   push:
     branches:
-      - main
+      - master
 
 concurrency:
   group: publish-native-${{ github.ref }}
@@ -20,7 +20,7 @@ env:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' || github.event_name != 'workflow_dispatch'
+    if: github.ref == 'refs/heads/master' || github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,7 +48,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           if [ -z "${{ secrets.QUAY_USERNAME }}" ] || [ -z "${{ secrets.QUAY_PASSWORD }}" ]; then
-            echo "Quay.io credentials are required when building from main." >&2
+            echo "Quay.io credentials are required when building from master." >&2
             exit 1
           fi
 
