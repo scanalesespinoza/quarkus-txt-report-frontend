@@ -43,13 +43,13 @@
 
   <script>
     let summaryData = [
-      { #each summaries }
-        {
+      {#each summaries}
+      {
         reportName: "{it.name}",
-        percentage: { it.summaryPercentage },
+        percentage: {it.summaryPercentage},
         uploadTime: "{it.uploadTime}"
-      }{ #if !it_isLast }, {/if}
-    {/each }
+      }{#if it_hasNext}, {/if}
+      {/each}
     ];
   </script>
   <script src="/script.js"></script>
