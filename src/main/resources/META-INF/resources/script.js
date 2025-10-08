@@ -2,12 +2,34 @@ console.log("summaryData:", summaryData);
 
 let currentDate = null;
 let chart;
+let previousScrollX = 0;
+let previousScrollY = 0;
 
 const chartCanvas = document.getElementById('summaryChart');
 const backBtn = document.getElementById('backBtn');
+const chartContainer = document.querySelector('.chart-area');
 
-if (summaryData.length === 0) {
-  document.getElementById('chartContainer').innerHTML = '<div style="text-align:center;color:#666;padding:2rem;">No hay reportes disponibles.</div>';
+if (!summaryData || summaryData.length === 0) {
+  if (chartCanvas) {
+    chartCanvas.style.display = 'none';
+  }
+
+  if (backBtn) {
+    backBtn.style.display = 'none';
+  }
+
+  if (chartContainer) {
+    const emptyState = document.createElement('div');
+    emptyState.style.textAlign = 'center';
+    emptyState.style.color = '#666';
+    emptyState.style.padding = '2rem';
+    emptyState.textContent = 'No hay reportes disponibles.';
+    chartContainer.appendChild(emptyState);
+  } else {
+    console.warn('No chart container element found to display empty state.');
+  }
+
+  window.resetToDailyView = () => {};
 } else {
   const uniqueDates = [...new Set(summaryData.map(d =>
     new Date(d.uploadTime).toISOString().split('T')[0]
@@ -101,12 +123,11 @@ if (summaryData.length === 0) {
     };
   }
 
-  function resetToDailyView() {
+  window.resetToDailyView = function resetToDailyView() {
     renderChartForDate(currentDate);
     backBtn.style.display = 'none';
     window.scrollTo(previousScrollX, previousScrollY);
-
-  }
+  };
 
   function renderChartForDate(date) {
     currentDate = date;
