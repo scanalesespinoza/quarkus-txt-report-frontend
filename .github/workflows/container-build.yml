@@ -8,7 +8,7 @@ on:
         required: false
   push:
     branches:
-      - main
+      - master
 
 concurrency:
   group: publish-native-${{ github.ref }}
@@ -20,7 +20,7 @@ env:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' || github.event_name != 'workflow_dispatch'
+    if: github.ref == 'refs/heads/master' || github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,7 +48,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           if [ -z "${{ secrets.QUAY_USERNAME }}" ] || [ -z "${{ secrets.QUAY_PASSWORD }}" ]; then
-            echo "Quay.io credentials are required when building from main." >&2
+            echo "Quay.io credentials are required when building from master." >&2
             exit 1
           fi
 
@@ -80,18 +80,50 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
+      - name: Prepare Podman auth file
+        if: steps.publish.outputs.push == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/.config/containers"
+          touch "${HOME}/.config/containers/auth.json"
+
+      - name: Log in to Quay.io for Podman
+        if: steps.publish.outputs.push == 'true'
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.QUAY_PASSWORD }}" | podman login "${{ env.REGISTRY }}" \
+            --username "${{ secrets.QUAY_USERNAME }}" --password-stdin \
+            --authfile "${HOME}/.config/containers/auth.json"
+
       - name: Build native executable and container image
         env:
           PUSH_IMAGE: ${{ steps.publish.outputs.push }}
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          PODMAN_AUTH_FILE: ${{ env.HOME }}/.config/containers/auth.json
         run: |
-          ./mvnw -B -ntp clean package \
-            -Dquarkus.package.type=native \
-            -Dquarkus.native.container-build=true \
-            -Dquarkus.native.container-runtime=docker \
-            -Dquarkus.container-image.builder=docker \
-            -Dquarkus.container-image.build=true \
-            -Dquarkus.container-image.registry=${REGISTRY} \
-            -Dquarkus.container-image.group=${IMAGE_REPOSITORY%/*} \
-            -Dquarkus.container-image.name=${IMAGE_REPOSITORY##*/} \
-            -Dquarkus.container-image.tag=${{ steps.meta.outputs.tag }} \
-            -Dquarkus.container-image.push=${PUSH_IMAGE}
+          set -euo pipefail
+
+          MAVEN_ARGS=(
+            "-B" "-ntp" "clean" "package"
+            "-Dquarkus.package.type=native"
+            "-Dquarkus.native.container-build=true"
+            "-Dquarkus.native.container-runtime=docker"
+            "-Dquarkus.container-image.builder=docker"
+            "-Dquarkus.container-image.build=true"
+            "-Dquarkus.container-image.registry=${REGISTRY}"
+            "-Dquarkus.container-image.group=${IMAGE_REPOSITORY%/*}"
+            "-Dquarkus.container-image.name=${IMAGE_REPOSITORY##*/}"
+            "-Dquarkus.container-image.tag=${{ steps.meta.outputs.tag }}"
+            "-Dquarkus.container-image.push=${PUSH_IMAGE}"
+          )
+
+          if [ "${PUSH_IMAGE}" = "true" ]; then
+            MAVEN_ARGS+=(
+              "-Dquarkus.container-image.username=${QUAY_USERNAME}"
+              "-Dquarkus.container-image.password=${QUAY_PASSWORD}"
+              "-Dquarkus.container-image.registry-auth-file=${PODMAN_AUTH_FILE}"
+            )
+          fi
+
+          ./mvnw "${MAVEN_ARGS[@]}"

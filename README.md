@@ -31,7 +31,7 @@ Or run the underlying Maven goal manually:
 
 ```bash
 ./mvnw clean package \
-  -Dquarkus.package.type=native \
+  -Dquarkus.native.enabled=true \
   -Dquarkus.native.container-build=true \
   -Dquarkus.native.container-runtime=podman \
   -Dquarkus.container-image.builder=podman \
@@ -94,4 +94,4 @@ All manifests reside under `manifests/`.
 ## CI/CD
 - `.github/workflows/pr-validation.yml` builds and tests every pull request targeting `main` and enables auto-merge when the checks succeed.
 - `.github/workflows/maven-publish.yml` validates tagged releases and publishes the Maven artifact.
-- `.github/workflows/container-build.yml` compiles the native binary, builds the container image, and (optionally) pushes it to Quay. Configure the `QUAY_USERNAME` and `QUAY_PASSWORD` secrets to enable the push step.
+- `.github/workflows/container-build.yml` compiles the native binary, builds the container image, and (optionally) pushes it to Quay. Configure the `QUAY_USERNAME` and `QUAY_PASSWORD` secrets to enable the push step. When using a Quay robot account, set `QUAY_USERNAME` to the robot's fully-qualified name (for example, `robot$myorg+builder`) and `QUAY_PASSWORD` to its generated token so both Docker and Podman can authenticate during the workflow.

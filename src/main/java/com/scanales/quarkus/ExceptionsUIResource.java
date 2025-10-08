@@ -15,14 +15,14 @@ public class ExceptionsUIResource {
     private static final Logger LOG = Logger.getLogger(ExceptionsUIResource.class);
 
     @Inject
-    ExceptionCache exceptionCache;
+    ReportCache reportCache;
 
     @Inject
     Template exceptions;
 
     @GET
     public String viewExceptions() {
-        LOG.infof("Rendering exceptions dashboard with %d entries", exceptionCache.listExceptions().size());
-        return exceptions.data("exceptions", exceptionCache.listExceptions().values()).render();
+        LOG.infof("Rendering exceptions dashboard with %d entries", reportCache.listExceptions().size());
+        return exceptions.data("exceptions", reportCache.listExceptions().values()).render();
     }
 }
