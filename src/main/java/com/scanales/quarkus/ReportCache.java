@@ -1,5 +1,6 @@
 package com.scanales.quarkus;
 
+import com.scanales.quarkus.model.ExceptionReport;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
