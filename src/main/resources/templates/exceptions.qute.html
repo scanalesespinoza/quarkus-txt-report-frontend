@@ -43,15 +43,15 @@
 
     <script>
         let exceptionData = [
-            { #each exceptions }
-        {
+            {#each exceptions}
+            {
                 type: "{it.type}",
                 message: "{it.message}",
                 timestamp: "{it.timestamp}",
                 id: "{it.id}"
-            }{ #if !it_isLast }, {/if}
-        {/each }
-    ];
+            }{#if it_hasNext}, {/if}
+            {/each}
+        ];
     </script>
     <script src="/exceptions.js"></script>
 </body>
