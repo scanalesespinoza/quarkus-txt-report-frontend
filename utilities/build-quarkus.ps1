@@ -13,7 +13,7 @@ Write-Host "=== Running Quarkus native build from $projectRoot ===`n"
 
 $args = @(
     "clean", "package",
-    "-Dquarkus.package.type=native",
+    "-Dquarkus.native.enabled=true",
     "-Dquarkus.native.container-build=true",
     "-Dquarkus.native.container-runtime=$Builder",
     "-Dquarkus.native.builder-image=quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-21",

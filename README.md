@@ -31,7 +31,7 @@ Or run the underlying Maven goal manually:
 
 ```bash
 ./mvnw clean package \
-  -Dquarkus.package.type=native \
+  -Dquarkus.native.enabled=true \
   -Dquarkus.native.container-build=true \
   -Dquarkus.native.container-runtime=podman \
   -Dquarkus.container-image.builder=podman \
